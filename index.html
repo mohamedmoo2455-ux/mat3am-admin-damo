@@ -3,102 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة تحكم المطعم</title>
+    <title>لوحة تحكم المطعم المتكاملة</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Cairo', sans-serif; background-color: #f3f4f6; }
+        body { font-family: 'Cairo', sans-serif; background-color: #f8fafc; }
+        @media print {
+            body * { visibility: hidden; }
+            #receipt-print-area, #receipt-print-area * { visibility: visible; }
+            #receipt-print-area { position: absolute; left: 0; top: 0; width: 100%; display: block !important; }
+        }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden">
+<body class="flex h-screen overflow-hidden text-gray-800">
 
-    <!-- القائمة الجانبية (Sidebar) -->
-    <aside class="w-64 bg-gray-900 text-white flex flex-col shadow-xl">
-        <div class="p-6 text-2xl font-bold border-b border-gray-800 text-red-500">
-            ⚙️ إدارة المطعم
+    <!-- القائمة الجانبية -->
+    <aside class="w-64 bg-gray-900 text-white flex flex-col shadow-2xl z-20 hidden md:flex">
+        <div class="p-6 text-2xl font-black border-b border-gray-800 text-red-500 flex items-center gap-2">
+            ⚙️ إدَارَة المطعم
         </div>
-        <nav class="flex-1 p-4 space-y-2">
-            <a href="#" class="block p-3 rounded-lg bg-gray-800 text-white font-bold">📊 الإحصائيات</a>
-            <a href="#" class="block p-3 rounded-lg hover:bg-gray-800 transition text-gray-300">🔔 الطلبات الحية (3)</a>
-            <a href="#" class="block p-3 rounded-lg hover:bg-gray-800 transition text-gray-300">🍔 تعديل المنيو</a>
-            <a href="#" class="block p-3 rounded-lg hover:bg-gray-800 transition text-gray-300">⚙️ الإعدادات</a>
+        <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+            <a href="#" class="block p-3 rounded-xl bg-red-600 text-white font-bold shadow-lg">📊 لوحة التشغيل</a>
+            <a href="#" class="block p-3 rounded-xl hover:bg-gray-800 transition text-gray-300 font-bold flex justify-between items-center">
+                <span>🔔 الطلبات الحية</span>
+                <span id="active-badge" class="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">2</span>
+            </a>
+            <a href="#" onclick="openModal('menu-modal')" class="block p-3 rounded-xl hover:bg-gray-800 transition text-gray-300 font-bold">🍔 إضافة وجبة للمنيو</a>
+            <a href="#" class="block p-3 rounded-xl hover:bg-gray-800 transition text-gray-300 font-bold">📈 تقارير المبيعات</a>
         </nav>
         <div class="p-4 border-t border-gray-800">
-            <button class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-lg transition">تسجيل خروج</button>
+            <button class="w-full bg-gray-800 hover:bg-red-600 text-white font-bold py-2 rounded-xl transition text-sm">تسجيل خروج</button>
         </div>
     </aside>
 
-    <!-- المحتوى الرئيسي (Main Content) -->
-    <main class="flex-1 flex flex-col overflow-y-auto">
+    <!-- المحتوى الرئيسي -->
+    <main class="flex-1 flex flex-col h-screen overflow-y-auto">
         <!-- شريط علوي -->
-        <header class="bg-white shadow-sm p-4 flex justify-between items-center sticky top-0 z-10">
-            <h1 class="text-xl font-bold text-gray-800">مرحباً بك، مدير المطعم 👋</h1>
+        <header class="bg-white shadow-sm p-4 flex justify-between items-center sticky top-0 z-10 border-b border-gray-100">
+            <div class="flex items-center gap-3">
+                <h1 class="text-xl font-black text-gray-800">مركز إدارة العمليات 👋</h1>
+            </div>
+            
             <div class="flex items-center gap-4">
-                <span class="flex h-3 w-3 relative">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                </span>
-                <span class="text-sm font-bold text-gray-600">النظام يعمل</span>
+                <!-- محاكاة طلب جديد صوتي -->
+                <button onclick="simulateIncomingOrder()" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 shadow-sm transition active:scale-95">
+                    ⚡ تجربة طلب فوري
+                </button>
+
+                <!-- زر تشغيل وإيقاف استلام الطلبات -->
+                <div class="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200">
+                    <span id="store-status-text" class="text-xs font-bold text-green-600">المطعم يستقبل طلبات</span>
+                    <button onclick="toggleStoreStatus()" id="store-toggle-btn" class="w-10 h-5 bg-green-500 rounded-full relative p-0.5 transition duration-300">
+                        <div id="toggle-circle" class="w-4 h-4 bg-white rounded-full transition transform translate-x-0"></div>
+                    </button>
+                </div>
             </div>
         </header>
 
         <div class="p-6 space-y-6">
-            <!-- كروت الإحصائيات السريعة -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white p-6 rounded-xl shadow-sm border-r-4 border-blue-500">
-                    <div class="text-gray-500 text-sm font-bold mb-1">مبيعات اليوم</div>
-                    <div class="text-3xl font-bold text-gray-800">2,450 ج.م</div>
+            <!-- الإحصائيات -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 border-r-4 border-r-blue-500">
+                    <div class="text-gray-400 text-xs font-bold mb-1">مبيعات اليوم</div>
+                    <div id="stat-sales" class="text-2xl font-black text-gray-800">2,450 ج.م</div>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm border-r-4 border-green-500">
-                    <div class="text-gray-500 text-sm font-bold mb-1">إجمالي الطلبات</div>
-                    <div class="text-3xl font-bold text-gray-800">18 طلب</div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 border-r-4 border-r-emerald-500">
+                    <div class="text-gray-400 text-xs font-bold mb-1">الطلبات المكتملة</div>
+                    <div class="text-2xl font-black text-gray-800">18</div>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm border-r-4 border-red-500">
-                    <div class="text-gray-500 text-sm font-bold mb-1">أكثر وجبة مبيعاً</div>
-                    <div class="text-xl font-bold text-gray-800 mt-2">برجر لحم دبل مقرمش</div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 border-r-4 border-r-amber-500">
+                    <div class="text-gray-400 text-xs font-bold mb-1">قيد التجهيز الآن</div>
+                    <div id="stat-pending" class="text-2xl font-black text-gray-800">2</div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 border-r-4 border-r-purple-500">
+                    <div class="text-gray-400 text-xs font-bold mb-1">أعلى الأصناف طلباً</div>
+                    <div class="text-base font-black text-gray-800 truncate">برجر دبل بيف</div>
                 </div>
             </div>
 
-            <!-- جدول الطلبات الحية -->
-            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-                <div class="p-4 border-b flex justify-between items-center bg-gray-50">
-                    <h2 class="text-lg font-bold text-gray-800">الطلبات الحديثة 🔔</h2>
-                    <button class="text-sm text-blue-600 font-bold hover:underline">عرض الكل</button>
+            <!-- جدول إدارة الطلبات -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-base font-black text-gray-800">الطلبات الواردة</h2>
+                        <span class="bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">مباشر</span>
+                    </div>
+                    <button onclick="openModal('menu-modal')" class="bg-gray-900 text-white text-xs px-3 py-2 rounded-xl font-bold hover:bg-gray-800 transition">
+                        + إضافة صنف جديد
+                    </button>
                 </div>
+                
                 <div class="overflow-x-auto">
                     <table class="w-full text-right">
-                        <thead class="bg-gray-100 text-gray-600 text-sm">
+                        <thead class="bg-gray-50 text-gray-500 text-xs">
                             <tr>
-                                <th class="p-4">رقم الطلب</th>
-                                <th class="p-4">اسم العميل</th>
-                                <th class="p-4">الإجمالي</th>
-                                <th class="p-4">الحالة</th>
-                                <th class="p-4">الإجراء</th>
+                                <th class="p-4 font-bold">الرقم</th>
+                                <th class="p-4 font-bold">العميل والتفاصيل</th>
+                                <th class="p-4 font-bold">النوع</th>
+                                <th class="p-4 font-bold">القيمة</th>
+                                <th class="p-4 font-bold">حالة الطلب (اضغط للتغيير)</th>
+                                <th class="p-4 font-bold text-center">إجراءات</th>
                             </tr>
                         </thead>
-                        <tbody class="text-sm text-gray-700">
-                            <!-- طلب 1 -->
-                            <tr class="border-b hover:bg-gray-50 transition">
-                                <td class="p-4 font-bold">#1024</td>
-                                <td class="p-4">أحمد محمود</td>
-                                <td class="p-4 font-bold text-red-600">270 ج.م</td>
+                        <tbody id="orders-table-body" class="text-sm font-semibold divide-y divide-gray-100">
+                            <!-- الطلب 1 -->
+                            <tr id="order-1025" class="hover:bg-gray-50/80 transition">
+                                <td class="p-4 font-black text-gray-900">#1025</td>
                                 <td class="p-4">
-                                    <span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-bold">جاري التجهيز</span>
+                                    <div class="font-bold text-gray-900">أحمد كمال (01012345678)</div>
+                                    <div class="text-xs text-gray-400">2x برجر لحم دبل، 1x بيبسي</div>
                                 </td>
+                                <td class="p-4"><span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg text-xs font-bold">🛵 دليفري</span></td>
+                                <td class="p-4 text-red-600 font-black">320 ج.م</td>
                                 <td class="p-4">
-                                    <button class="bg-blue-50 text-blue-600 px-3 py-1 rounded hover:bg-blue-100 transition">تفاصيل</button>
+                                    <button onclick="cycleStatus(this)" class="status-btn bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-bold transition">
+                                        جاري التجهيز ⏳
+                                    </button>
+                                </td>
+                                <td class="p-4 text-center">
+                                    <button onclick="printReceipt('1025', 'أحمد كمال', '2x برجر لحم دبل\n1x بيبسي', '320')" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold transition">
+                                        🖨️ طباعة الفاتورة
+                                    </button>
                                 </td>
                             </tr>
-                            <!-- طلب 2 -->
-                            <tr class="border-b hover:bg-gray-50 transition">
-                                <td class="p-4 font-bold">#1023</td>
-                                <td class="p-4">سارة كمال</td>
-                                <td class="p-4 font-bold text-red-600">150 ج.م</td>
+                            <!-- الطلب 2 -->
+                            <tr id="order-1024" class="hover:bg-gray-50/80 transition">
+                                <td class="p-4 font-black text-gray-900">#1024</td>
                                 <td class="p-4">
-                                    <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold">خرج للتوصيل</span>
+                                    <div class="font-bold text-gray-900">محمود طارق (ترابيزة 3)</div>
+                                    <div class="text-xs text-gray-400">1x وجبة كرسبي، 1x بطاطس</div>
                                 </td>
+                                <td class="p-4"><span class="bg-purple-50 text-purple-600 px-2.5 py-1 rounded-lg text-xs font-bold">🍽️ داخل الصالة</span></td>
+                                <td class="p-4 text-red-600 font-black">150 ج.م</td>
                                 <td class="p-4">
-                                    <button class="bg-blue-50 text-blue-600 px-3 py-1 rounded hover:bg-blue-100 transition">تفاصيل</button>
+                                    <button onclick="cycleStatus(this)" class="status-btn bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-bold transition">
+                                        في الطريق 🛵
+                                    </button>
+                                </td>
+                                <td class="p-4 text-center">
+                                    <button onclick="printReceipt('1024', 'محمود طارق', '1x وجبة كرسبي\n1x بطاطس', '150')" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold transition">
+                                        🖨️ طباعة الفاتورة
+                                    </button>
                                 </td>
                             </tr>
                         </tbody>
@@ -108,5 +153,163 @@
         </div>
     </main>
 
+    <!-- نافذة إضافة وجبة جديدة -->
+    <div id="menu-modal" class="fixed inset-0 bg-black/60 z-50 hidden justify-center items-center px-4 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-black text-lg text-gray-800">إضافة وجبة إلى المنيو</h3>
+                <button onclick="closeModal('menu-modal')" class="text-gray-400 hover:text-red-500 font-black text-xl">&times;</button>
+            </div>
+            <div class="space-y-3">
+                <input type="text" id="new-item-name" placeholder="اسم الوجبة" class="w-full p-3 border rounded-xl outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-red-500">
+                <div class="flex gap-2">
+                    <input type="number" id="new-item-price" placeholder="السعر (ج.م)" class="w-1/2 p-3 border rounded-xl outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-red-500">
+                    <select class="w-1/2 p-3 border rounded-xl outline-none text-sm bg-gray-50 text-gray-600">
+                        <option>برجر</option>
+                        <option>فراخ مقلية</option>
+                        <option>عروض خاصة</option>
+                    </select>
+                </div>
+                <textarea placeholder="وصف المكونات" class="w-full p-3 border rounded-xl outline-none text-sm bg-gray-50 resize-none focus:ring-2 focus:ring-red-500" rows="2"></textarea>
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button onclick="saveNewItem()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition text-sm">حفظ ونشر</button>
+                <button onclick="closeModal('menu-modal')" class="px-4 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-3 rounded-xl transition text-sm">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- قالب فاتورة الكاشير المخفي للطباعة -->
+    <div id="receipt-print-area" class="hidden p-6 max-w-xs mx-auto border text-center font-mono text-xs">
+        <h2 class="text-xl font-black mb-1">مطعم ديمو</h2>
+        <p class="mb-2">فاتورة تشغيل داخلية</p>
+        <div class="border-b border-dashed my-2"></div>
+        <div class="flex justify-between font-bold">
+            <span id="print-order-id">#1025</span>
+            <span id="print-date"></span>
+        </div>
+        <div id="print-customer" class="text-right my-2 font-bold"></div>
+        <div class="border-b border-dashed my-2"></div>
+        <pre id="print-items" class="text-right whitespace-pre-wrap font-sans my-2"></pre>
+        <div class="border-b border-dashed my-2"></div>
+        <div class="flex justify-between text-base font-black my-2">
+            <span>الإجمالي:</span>
+            <span id="print-total"></span>
+        </div>
+        <p class="mt-4">شكراً لطلبكم!</p>
+    </div>
+
+    <!-- السكريبت التفاعلي -->
+    <script>
+        // تغيير حالة الاستقبال بالمطعم
+        let isStoreOpen = true;
+        function toggleStoreStatus() {
+            isStoreOpen = !isStoreOpen;
+            const btn = document.getElementById('store-toggle-btn');
+            const circle = document.getElementById('toggle-circle');
+            const text = document.getElementById('store-status-text');
+
+            if(isStoreOpen) {
+                btn.className = "w-10 h-5 bg-green-500 rounded-full relative p-0.5 transition duration-300";
+                circle.style.transform = "translateX(0)";
+                text.innerText = "المطعم يستقبل طلبات";
+                text.className = "text-xs font-bold text-green-600";
+            } else {
+                btn.className = "w-10 h-5 bg-gray-300 rounded-full relative p-0.5 transition duration-300";
+                circle.style.transform = "translateX(-20px)";
+                text.innerText = "المطعم مغلق مؤقتاً";
+                text.className = "text-xs font-bold text-red-500";
+            }
+        }
+
+        // تغيير مراحل الطلب عند النقر
+        function cycleStatus(button) {
+            const current = button.innerText.trim();
+            if(current.includes("التجهيز")) {
+                button.className = "status-btn bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-bold transition";
+                button.innerText = "في الطريق 🛵";
+            } else if(current.includes("الطريق")) {
+                button.className = "status-btn bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-xs font-bold transition";
+                button.innerText = "تم التسليم ✅";
+            } else {
+                button.className = "status-btn bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-bold transition";
+                button.innerText = "جاري التجهيز ⏳";
+            }
+        }
+
+        // إخراج وطباعة بون الكاشير
+        function printReceipt(orderId, customer, items, total) {
+            document.getElementById('print-order-id').innerText = '#' + orderId;
+            document.getElementById('print-date').innerText = new Date().toLocaleTimeString('ar-EG');
+            document.getElementById('print-customer').innerText = 'العميل: ' + customer;
+            document.getElementById('print-items').innerText = items;
+            document.getElementById('print-total').innerText = total + ' ج.م';
+            window.print();
+        }
+
+        // محاكاة تنبيه صوتي لطلب جديد
+        function simulateIncomingOrder() {
+            // توليد نغمة صوتية برمجياً عبر Web Audio API
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+                osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.5);
+            } catch (e) {}
+
+            const tableBody = document.getElementById('orders-table-body');
+            const randomId = Math.floor(1000 + Math.random() * 9000);
+            const newRow = document.createElement('tr');
+            newRow.className = "hover:bg-gray-50/80 transition bg-amber-50/50 animate-pulse";
+            newRow.innerHTML = `
+                <td class="p-4 font-black text-gray-900">#${randomId}</td>
+                <td class="p-4">
+                    <div class="font-bold text-gray-900">طلب محاكاة جديد</div>
+                    <div class="text-xs text-gray-400">1x وجبة ميكس جريل، 1x بيبسي</div>
+                </td>
+                <td class="p-4"><span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg text-xs font-bold">🛵 دليفري</span></td>
+                <td class="p-4 text-red-600 font-black">210 ج.م</td>
+                <td class="p-4">
+                    <button onclick="cycleStatus(this)" class="status-btn bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-bold transition">
+                        جاري التجهيز ⏳
+                    </button>
+                </td>
+                <td class="p-4 text-center">
+                    <button onclick="printReceipt('${randomId}', 'عميل فوري', '1x وجبة ميكس جريل', '210')" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold transition">
+                        🖨️ طباعة الفاتورة
+                    </button>
+                </td>
+            `;
+            tableBody.prepend(newRow);
+            setTimeout(() => newRow.classList.remove('bg-amber-50/50', 'animate-pulse'), 3000);
+        }
+
+        // نوافذ الإدارة
+        function openModal(id) {
+            const m = document.getElementById(id);
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
+        function closeModal(id) {
+            const m = document.getElementById(id);
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        }
+        function saveNewItem() {
+            const name = document.getElementById('new-item-name').value;
+            const price = document.getElementById('new-item-price').value;
+            if(!name || !price) { alert('يرجى كتابة الاسم والسعر'); return; }
+            alert('تمت إضافة الوجبة بنجاح إلى المنيو!');
+            closeModal('menu-modal');
+        }
+    </script>
 </body>
 </html>
